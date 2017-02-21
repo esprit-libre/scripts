@@ -26,11 +26,41 @@
 ##
 
 # nextcloud webroot
-DIR='/var/www/nextcloud'
+#DIR='/var/www/nextcloud'
 # where to store backup before upgrade
-BACKUP='/tmp/nextcloud-backup-'$(date +%F-%H-%M-%S)
+#BACKUP='/tmp/nextcloud-backup-'$(date +%F-%H-%M-%S)
 # set to 'true' if you want to keep backup
-KEEP_BACKUP='false'
+KEEP_BACKUP='true'
+
+function readvars() {
+	PREV=null
+	for val in $*; do
+		case $val in
+			'-up')	DEST='nextcloud'
+				;;
+			'-nc')	INSTANCE='nextcloud'
+				;;
+			'-oc')	INSTANCE='owncloud'
+				;;
+			'-dir') PREV='DIR'
+				;;
+			'-save') PREV='SAV'
+				;;
+			'-rembkp') KEEP_BACKUP='false'
+				;;
+			'-version') PREV='VERSION'
+				;;
+			*)	if [[ "$PREV" = "DIR" ]]; then
+					DIR=$val
+				elif [[ "$PREV" = "SAV" ]]; then
+					BACKUP=$val'/backup-'$(date +%F-%H-%M-%S)
+				elif [[ "$PREV" = "VERSION" ]]; then
+					LATEST_VERSION=$val
+				fi
+				;;
+		esac
+	done
+}
 
 function main() {
     # dependencies
@@ -52,11 +82,12 @@ function main() {
     DBPASS=$(php -r 'require $argv[1]."/config/config.php"; echo $CONFIG["dbpassword"];' $DIR)
 
     # get latest version number from arg or from GitHub
-    if [ ! -z $1 ]; then
-        LATEST_VERSION=$1
-    else
+#    if [ ! -z $1 ]; then
+#        LATEST_VERSION=$1
+#    else
+    if [ -z $LATEST_VERSION ]; then
         LATEST_VERSION=$(
-            curl -s https://api.github.com/repos/nextcloud/server/releases/latest | \
+            curl -s https://api.github.com/repos/$DEST/server/releases/latest | \
             grep 'tag_name' | \
             awk '{ print $2 }' | \
             sed 's/[,|"|v]//g'
@@ -68,15 +99,15 @@ function main() {
         grep 'versionstring' | \
         awk '{ print $3 }'
     )
-    FILENAME='nextcloud-'$LATEST_VERSION'.tar.bz2'
-    DOWNLOAD_URL='https://download.nextcloud.com/server/releases/'$FILENAME
+    FILENAME=$DEST'-'$LATEST_VERSION'.tar.bz2'
+    DOWNLOAD_URL='https://download.'$DEST'.com/server/releases/'$FILENAME
     GPG_SIG_URL=$DOWNLOAD_URL'.asc'
-    GPG_PUBKEY_URL='https://nextcloud.com/nextcloud.asc'
+    GPG_PUBKEY_URL='https://'$DEST'.com/'$DEST'.asc'
     GPG_FINGERPRINT='A724937A'
 
     echo -e '\033[1m#-- check version\033[0m'
     if [ $INSTALLED_VERSION == $LATEST_VERSION ]; then
-        echo 'Nextcloud is already latest version'
+        echo 'Already latest version'
         exit 0
     fi
 
@@ -157,13 +188,13 @@ function upgrade() {
     # extract downloaded archive and delete it
     tar -xaf $FILENAME
     # restore configuration
-    rsync -ac $BACKUP/config/config.php nextcloud/config/
+    rsync -ac $BACKUP/config/config.php $DEST/config/
     # restore 3rdparty apps
     for app in $APPS; do
-        rsync -ac $BACKUP/apps/$app nextcloud/apps/
+        rsync -ac $BACKUP/apps/$app $DEST/apps/
     done
     # replace installed nextcloud by the updated one
-    rsync -avc --delete --exclude '.[git|bzr|svn]*' --exclude 'data' nextcloud/ $DIR
+    rsync -avc --delete --exclude '.[git|bzr|svn]*' --exclude 'data' $DEST/ $DIR
     # disable mode maintenance
     php -f $DIR/occ maintenance:mode --off
     # launch nextcloud upgrade process
@@ -205,7 +236,7 @@ function check_dependencies() {
 function clean() {
     echo -e '\033[1m#-- clear\033[0m'
 
-    rm -rf nextcloud
+    rm -rf $DEST
     rm -f $FILENAME
     rm -f $FILENAME.asc
     if [ $KEEP_BACKUP != 'true' ]; then
@@ -217,7 +248,6 @@ function clean() {
 }
 
 if [[ "$BASH_SOURCE" == "$0" ]]; then
+	readvars "$@"
     main "$@"
 fi
-
-# vim: ts=4 sw=4 sts=4 sr noet
