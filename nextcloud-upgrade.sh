@@ -2,7 +2,7 @@
 
 ## Upgrade Nextcloud
 #
-# version 1.0.0 - 27/02/2017
+# version 1.0.1 - 28/02/2017
 #
 # This script upgrade your Nextcloud installation following these steps:
 # - adjust permissions
