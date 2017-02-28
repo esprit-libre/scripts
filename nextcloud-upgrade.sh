@@ -58,8 +58,8 @@ function main() {
 
     # if empty, get latest version number from arg or from GitHub
     if [ -z $LATEST_VERSION ]; then
-	    # Warning : does not work with owncloud
-	    test ${LOG} = 'true' && echo -n "[LOG] Fetching LATEST_VERSION... "
+        # Warning : does not work with owncloud
+        test ${LOG} = 'true' && echo -n "[LOG] Fetching LATEST_VERSION... "
         LATEST_VERSION=$(
             curl -s https://api.github.com/repos/$DEST/server/releases/latest | \
             grep 'tag_name' | \
@@ -113,6 +113,7 @@ function readvars() {
     DEST="nextcloud"
     KEEP_BACKUP="true"
     SAVE=$(pwd)
+    SAVE_ROOT=${SAVE}
     LOG='false'
 
     while [[ $# -gt 0 ]]
@@ -144,6 +145,7 @@ function readvars() {
             if [ -w "$2" ]; then
                 SAVE="${2}/"
                 SAVE="${SAVE//'//'//}"
+                SAVE_ROOT=${SAVE}
             else
                 echo "[WARNING] Invalid save dir : "$2
                 echo -n "> Save in current directory (y|o, default) or no save (n) ? "
@@ -175,7 +177,7 @@ function readvars() {
 function download() {
     echo -e '\033[1m#-- download\033[0m'
 
-	# Building URLs
+    # Building URLs
     FILENAME=$DEST'-'$LATEST_VERSION'.tar.bz2'
     if [ $DEST = "owncloud" ]; then
         DOWNLOAD_URL='https://download.'$DEST'.org/community/'$FILENAME
@@ -277,12 +279,17 @@ function upgrade() {
     # patch https://help.nextcloud.com/t/owncloud-9-1-4-2-migration-to-nextcloud-not-working/8630
     test ${CURRENT_VERSION} = '9.1.4' && sed -i -e "s/9.1.4/9.1.3/g" ${DEST}/config/config.php
 
-    # restore 3rdparty apps
+    # restore 3rdparty apps if it is not bundled in package
     test ${LOG} = 'true' && echo "[LOG] Copy Apps to new dir..."
     for app in $APPS; do
-        test ${LOG} = 'true' && echo "     - "${app}
-        #~ rsync -ac $SAVE/apps/$app $DEST/apps/
-        cp -a ${SAVE}/apps/$app ${DEST}/apps
+        test ${LOG} = 'true' && echo -n "     - "${app}"... "
+        if [ ! -d ${SAVE_ROOT}${DEST}/apps/${app} ]; then
+            #~ rsync -ac $SAVE/apps/$app $DEST/apps/
+            cp -a ${SAVE}/apps/$app ${DEST}/apps
+            test ${LOG} = 'true' && echo $?" - copied"
+        else
+            test ${LOG} = 'true' && echo "not copied (bundled in package)"
+        fi
     done
 
     # replace installed nextcloud by the updated one
@@ -349,7 +356,7 @@ function check_dependencies() {
 }
 
 function manage_permissions() {
-	if [[ "$1" == "start" ]]; then
+    if [[ "$1" == "start" ]]; then
         test ${LOG} = 'true' && echo "[LOG] Moving to 'save' directory..."
         cd ${SAVE}
     elif [[ "$1" == "upgrade" ]]; then
