@@ -2,7 +2,7 @@
 
 ## Links by dates
 #
-# version 0.0.1 - 26/04/2017
+# version 0.0.2 - 26/04/2017
 #
 # This script create links for rsnapshot sub-directories replacing daily.0
 # by the date of creation of this folder.
@@ -12,7 +12,7 @@
 #  `./rsnapshot-date-link.sh --links LINKS_PATH --rsnap RSNAPSHOT_PATH [--deep DEEP] [--verbose]
 #
 # Examples:
-# `./rsnapshot-date-link.sh -l /home/user/saves -r /data/user/rsnapshot -d 3
+# `./rsnapshot-date-link.sh -l /home/user/links -r /data/user/rsnapshot -v -d 3
 ##
 
 function main() {
@@ -31,7 +31,7 @@ function main() {
 	clean_links
 
 	# New links creation
-	#create_links
+	create_links
 }
 
 function check_dependencies() {
@@ -107,19 +107,25 @@ function clean_links() {
     echo -e '\033[1m#-- clean links\033[0m'
 
     test ${LOG} = 'true' && echo "[LOG] Removing old links... "${LINKS_PATH}
-    rm -rf "${LINKS_PATH}"'/*'
+    rm -rf "${LINKS_PATH}"/*
+    echo "Resultat: "$?
 
     return 0
 }
 
 function create_links() {
-	#date -r /home/thomas/Personnel/Photos/2017 "+%Y.%m.%d_%Hh%Mmin"
-	# ls -Ad */
-	# ls -Ad */ | sed 's,/$,,g'
 	counting=1
-	ls -Adt ${RSNAPSHOT_PATH}/*/ | sed 's,/$,,g' | while read fold; do
-		test ${LOG} = 'true' && echo "[LOG] Folder: "${fold}" - "$(date -r "${fold}" "+%Y.%m.%d_%Hh%Mmin")
-		ln -s "${fold}" "${LINKS_PATH}"'/'$(date -r "${fold}" "+%Y.%m.%d_%Hh%Mmin")"_"$((counting++))
+	# sed 's,/$,,g' : remove ending /
+	# ls -Adt : list folders except . and .. and sort them by modify date
+	ls -Adt "${RSNAPSHOT_PATH}"/*/ | sed 's,/$,,g' | while read fold; do
+		fold="${fold//'//'//}"	# clean // into /
+		# `printf %03d $((counting))` : converts 1 digit number to 3 digit number
+		linkname=$(date -r "${fold}" "+%Y.%m.%d_%Hh%Mmin")"_"`printf %03d $((counting))`
+		test ${LOG} = 'true' && echo "[LOG] Folder: "${fold}
+		test ${LOG} = 'true' && echo "[LOG] |_Link: "${linkname}
+		# TODO : explore $fold to go inside at $deep level
+		ln -s "${fold}" "${LINKS_PATH}"/"${linkname}"
+		((counting++))
 	done
 
 	return 0
