@@ -2,7 +2,7 @@
 
 ## Links by dates for readability of rsnapshot folders
 #
-# version 1.0.1 - 28/04/2017
+# version 1.0.2 - 28/04/2017
 #
 # This script create links for rsnapshot sub-directories replacing daily.0
 # by the date of creation of this folder.
@@ -12,7 +12,7 @@
 #  `./rsnapshot-date-link.sh --links LINKS_PATH --snapshot SNAPSHOT_PATH [--deep DEEP] [--relative] [--verbose]
 #
 # Examples:
-# `./rsnapshot-date-link.sh -l /home/user/links -r /data/user/rsnapshot -v -d 3
+# `./rsnapshot-date-link.sh -l /home/user/links -s /data/user/rsnapshot -r -v -d 3
 ##
 
 function main() {
