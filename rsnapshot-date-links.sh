@@ -146,7 +146,7 @@ function create_links() {
 
 		# relative symlink
 		if [ ${RELATIVE} = 'true' ]; then
-			#test ${LOG} = 'true' && echo "[LOG] original LINKS_DIR="${LINKS_DIR}" ; SNAPSHOT_PATH="${FOLD_TO_LINK}
+			# First step : remove common path
 			COMPARE='true'
 			NB_REL=0
 			LINKS_DIR="${LINKS_DIR#*/}"			# removes first /
@@ -163,6 +163,11 @@ function create_links() {
 				fi
 			done
 			test ${NB_REL} -eq 0 && FOLD_TO_LINK="/${FOLD_TO_LINK}"	# if no part of PATH are similar, restore initial /
+
+			# Second step : count how many path diff we have to reach LINKS_DIR
+			# TODO
+
+			# Third step : add relative information
 			while [ ${NB_REL} -gt 0 ]
 			do
 				FOLD_TO_LINK="../${FOLD_TO_LINK}"
