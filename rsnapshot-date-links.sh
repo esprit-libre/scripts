@@ -2,7 +2,7 @@
 
 ## Links by dates for readability of rsnapshot folders
 #
-# version 1.0.3 - 28/04/2017
+# version 1.0.3 - 02/05/2017
 #
 # This script create links for rsnapshot sub-directories replacing daily.0
 # by the date of creation of this folder.
@@ -111,7 +111,7 @@ function clean_links() {
     echo -e '\033[1m#-- clean links\033[0m'
 
     test ${LOG} = 'true' && echo -n "[LOG] Removing old links in \""${LINKS_PATH}"/*\"."
-    #rm -rf "${LINKS_PATH}"/*
+    rm -rf "${LINKS_PATH}"/*
     test ${LOG} = 'true' && echo " result="$?
 
     return 0
