@@ -8,20 +8,34 @@
 # purge setup
 #
 # Usage:
-#  `./borg-backup.sh
+#  `./borg-backup.sh [-v|--verbose] [-l|--log LOG_PATH]
 ##
 
+set -e	# interrupt on error
+function cleanup()
+{
+    echo "Something bad happened during backup, check ${LOG_PATH}"
+    exit $1
+}
+function write_log()
+{
+	test ${DEBUG} = 'true' && echo "[LOG] "$1
+    echo `date '+%Y-%m-%d %H:%M:%S'`" - "$1 >> ${LOG_PATH}
+}
+trap '[ "$?" -eq 0 ] || cleanup' EXIT	# trap on non-zero exit
+
+
 function main() {
-    echo -e '\033[1m#Starting rsnapshot links by date\033[0m'
-    echo "-- "$(date +%F-%H-%M-%S)" --"
-    echo "-----------------------------------"
+    write_log '\033[1m# Starting borg backup script\033[0m'
+    write_log "-- "$(date +%Y-%m-%d %H-%M-%S)" --"
+    write_log "-----------------------------------"
 
-    # dependencies
-    DEPS=( rsync ) # sudo
-    check_dependencies
-
-	# Reading vars
+    # Reading vars
     read_vars "$@"
+
+	# dependencies
+    DEPS=( borg )
+    check_dependencies
 
 	# Old links deletion
 	clean_links
@@ -30,39 +44,27 @@ function main() {
 	create_links
 }
 
-function check_dependencies() {
-    echo -e '\033[1m#-- check dependencies\033[0m'
-
-    for dep in "${DEPS[@]}"; do
-        if [ ! "$(command -v $dep)" ]; then
-            echo '[ERROR] Missing dependency: '$dep
-            exit 1
-        fi
-    done
-
-    return 0
-}
-
 function read_vars() {
-    echo -e '\033[1m#-- read vars\033[0m'
+    write_log '\033[1m#-- read vars\033[0m'
 
-    LINKS_PATH=""
-    RSNAPSHOT_PATH=""
-    DEEP=0
-    LOG='false'
+    DEBUG='false'
+    LOG_PATH="/var/log/borg-backup.log"
 
     while [[ $# -gt 0 ]]
     do
     key="$1"
 
     case $key in
-        -l|--links)
+        -v|--verbose)
+            LOG='true'
+            ;;
+        -l|--log)
             if [ -d "$2" ] && [ -w "$2" ]; then
                 # ${VAR//ab/yz} replace all sub-chains 'ab' from VAR by 'yz'
                 LINKS_PATH="${2}/"
                 LINKS_PATH="${LINKS_PATH//'//'//}"
             else
-                echo "[ERROR] Invalid LINKS_PATH dir : "$2
+                write_log "[ERROR] Invalid LINKS_PATH dir : "$2
                 exit 1
             fi
             shift
@@ -84,17 +86,27 @@ function read_vars() {
             fi
             shift
             ;;
-        -v|--verbose)
-            LOG='true'
-            ;;
         *)
-            echo "[WARNING] Unkown option: $1"
+            write_log "[WARNING] Unkown option: $1"
             ;;
     esac
     shift
     done
 
     test ${LOG} = 'true' && echo "[LOG] LINKS_PATH="${LINKS_PATH}"; RSNAPSHOT_PATH="${RSNAPSHOT_PATH}"; DEEP="${DEEP}
+
+    return 0
+}
+
+function check_dependencies() {
+    write_log '\033[1m#-- check dependencies\033[0m'
+
+    for dep in "${DEPS[@]}"; do
+        if [ ! "$(command -v $dep)" ]; then
+            write_log '[ERROR] Missing dependency: '$dep
+            exit 1
+        fi
+    done
 
     return 0
 }
