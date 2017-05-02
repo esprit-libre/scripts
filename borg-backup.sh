@@ -133,6 +133,10 @@ if [[ "$BASH_SOURCE" == "$0" ]]; then
 fi
 
 
+#-----------
+# https://code.crapouillou.net/snippets/1
+#-----------
+
 # http://stackoverflow.com/questions/19622198/what-does-set-e-mean-in-a-bash-script
 set -e
 
@@ -193,3 +197,49 @@ $BORG prune -v $BORG_REPOSITORY \
 ts_log 'Cleaning up...'
 rm $MYSQL_TMP_DUMP_FILE
 rm $LDAP_TMP_DUMP_FILE
+
+
+#-----------
+# mon script d'origine
+#-----------
+############################
+###       VARIABLES      ###
+############################
+# Serveur à sauvegarder
+SOURCE='/home'
+MONTAGE='/mount_point'
+
+# Serveur de sauvegarde
+REP_DIR='/home/atticuser'
+REPOSITORY='/mount_point/serv.attic'
+
+# passphrase
+ATTIC_PASSPHRASE="***y"
+export ATTIC_PASSPHRASE
+
+############################
+###         INIT         ###
+############################
+# Créer et monter le répertoire
+#mkdir $MONTAGE
+echo ***x | sshfs -p 1234 atticuser@serv:$REP_DIR $MONTAGE -o password_stdin
+
+############################
+###      RECURRENT       ###
+############################
+# Sauvegarde, les excludes sont conservés (mais remis pour les évolutions)
+/usr/local/bin/attic create --stats $REPOSITORY::$(date +%Y%m%d_%H%M%S) $SOURCE \
+      --exclude '/home/logs' \
+      --exclude '/home/lost+found' \
+      
+# Nettoyage de l'historique passé
+/usr/local/bin/attic prune -v $REPOSITORY --keep-daily=31 --keep-weekly=26 --keep-monthly=6
+
+############################
+###       SORTIE         ###
+############################
+# Temporisation pour que les actions en cours se terminent
+sleep 10
+# Démonter le répertoire
+fusermount -u $MONTAGE
+#rm -r $MONTAGE
