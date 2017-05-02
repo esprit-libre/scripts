@@ -2,7 +2,7 @@
 
 ## Links by dates for readability of rsnapshot folders
 #
-# version 1.0.2 - 28/04/2017
+# version 1.0.3 - 28/04/2017
 #
 # This script create links for rsnapshot sub-directories replacing daily.0
 # by the date of creation of this folder.
@@ -110,8 +110,8 @@ function read_vars() {
 function clean_links() {
     echo -e '\033[1m#-- clean links\033[0m'
 
-    test ${LOG} = 'true' && echo -n "[LOG] Removing old links in \""${LINKS_PATH}"\"."
-    rm -rf "${LINKS_PATH}"/*
+    test ${LOG} = 'true' && echo -n "[LOG] Removing old links in \""${LINKS_PATH}"/*\"."
+    #rm -rf "${LINKS_PATH}"/*
     test ${LOG} = 'true' && echo " result="$?
 
     return 0
@@ -148,24 +148,26 @@ function create_links() {
 		if [ ${RELATIVE} = 'true' ]; then
 			# First step : remove common path
 			COMPARE='true'
-			NB_REL=0
-			LINKS_DIR="${LINKS_DIR#*/}"			# removes first /
-			FOLD_TO_LINK="${FOLD_TO_LINK#*/}"	# removes first /
 			while $COMPARE
 			do
 				# Compare first part of PATHS
 				if [ "${LINKS_DIR%%/*}" = "${FOLD_TO_LINK%%/*}" ]; then
 					LINKS_DIR="${LINKS_DIR#*/}"			# removes first bloc of PATH
 					FOLD_TO_LINK="${FOLD_TO_LINK#*/}"	# removes first bloc of PATH
-					((NB_REL++))
 				else
 					COMPARE='false'
 				fi
 			done
-			test ${NB_REL} -eq 0 && FOLD_TO_LINK="/${FOLD_TO_LINK}"	# if no part of PATH are similar, restore initial /
-
+			
 			# Second step : count how many path diff we have to reach LINKS_DIR
-			# TODO
+			NB_REL=0
+			while [ -n "${LINKS_DIR}" ]
+			do
+				LINKS_DIR="${LINKS_DIR#*/}"
+				((NB_REL++))
+			done
+
+			test ${NB_REL} -eq 0 && FOLD_TO_LINK="/${FOLD_TO_LINK}"	# if no part of PATH are similar, restore initial /
 
 			# Third step : add relative information
 			while [ ${NB_REL} -gt 0 ]
