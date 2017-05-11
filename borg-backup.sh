@@ -10,7 +10,7 @@ cleanup()
 }
 ts_log()
 {
-    echo `date '+%Y-%m-%d %H:%M:%S'`" - "$1 >> ${LOG_PATH}
+    echo `date '+%Y-%m-%d_%H:%M:%S'`" - "$1 >> ${LOG_PATH}
 }
 trap '[ "$?" -eq 0 ] || cleanup' EXIT	# Trap on non-zero exit
 
@@ -40,7 +40,7 @@ $BORG create \
      -v --stats --compression lzma,9 \
      $BORG_ARCHIVE \
      /etc /var/www /home $MYSQL_TMP_DUMP_FILE \
-     --exclude '/home/logs' \
+     --exclude '.ssh' \
      >> ${LOG_PATH} 2>&1
 
 ts_log "Rotating old backups."
