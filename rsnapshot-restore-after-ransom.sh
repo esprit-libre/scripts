@@ -2,7 +2,7 @@
 
 ## Restore files from rsnapshot folders after ransomware infection
 #
-# version 1.0.0 - 04/05/2017
+# version 1.0.1 - 05/05/2017
 #
 # This script gets back from rsnapshot directories non-infected files
 # based on name and infected files extension
@@ -122,7 +122,7 @@ function treat_infected_files() {
 			if [ ! -e "${RSNAPSHOT_DAILY}" ]; then
 				EXT=${PATTERN#*}
 				mv "${INFECTED_FILE}" "${INFECTED_FILE}_virus"
-				find / -type f -wholename "${RSNAPSHOT_DAILY%$EXT}.*" -exec cp -a {} "${INFECTED_FILE%/*}/" \;
+				find "${RSNAPSHOT_BASE}" -type f -wholename "${RSNAPSHOT_DAILY%$EXT}.*" -exec cp -a {} "${INFECTED_FILE%/*}/" \;
 				NOTFOUND='false'
 				test ${LOG} = 'true' && echo " restored by \""${RSNAPSHOT_DAILY%$EXT}".*\""
 			fi
