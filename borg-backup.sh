@@ -30,7 +30,7 @@ ts_log 'Dumping MySQL db...'
 MYSQL_PASS=`cat /root/.borg/mysql_user`
 MYSQL_USER="mysqluser"
 MYSQL_DATABASE="database"
-MYSQL_TMP_DUMP_FILE=/root/.borg/mysql_all_db.sql
+MYSQL_TMP_DUMP_FILE=/data/mysql_all_db.sql
 
 #mysqldump --all-databases --events -p$MYSQL_PASS > $MYSQL_TMP_DUMP_FILE
 mysqldump -u$MYSQL_USER --events -p$MYSQL_PASS $MYSQL_DATABASE > $MYSQL_TMP_DUMP_FILE
@@ -40,7 +40,10 @@ $BORG create \
      -v --stats --compression lzma,9 \
      $BORG_ARCHIVE \
      /etc /var/www /home $MYSQL_TMP_DUMP_FILE \
-     --exclude '.ssh' \
+     --exclude '/home/*/.ssh' \
+     --exclude '/home/*/cache' \
+     --exclude '/root/.borg' \
+     --exclude '/root/.ssh' \
      >> ${LOG_PATH} 2>&1
 
 ts_log "Rotating old backups."
