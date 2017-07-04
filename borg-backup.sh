@@ -20,7 +20,7 @@ BACKUP_DATE=`date +%Y%m%d_%H%M%S`
 LOG_PATH=/var/log/borg-user.log
 
 BORG=/usr/bin/borg
-export BORG_RSH="ssh -i /root/.borg/user_id_rsa"
+export BORG_RSH="ssh -i /root/.ssh/user_id_rsa"
 export BORG_PASSPHRASE="`cat /root/.borg/passphrase`"
 #BORG_REPOSITORY=user@server.com:/data/user/borg/servername
 BORG_REPOSITORY=sshname:/data/user/borg/servername
@@ -30,7 +30,7 @@ ts_log 'Dumping MySQL db...'
 MYSQL_PASS=`cat /root/.borg/mysql_user`
 MYSQL_USER="mysqluser"
 MYSQL_DATABASE="database"
-MYSQL_TMP_DUMP_FILE=/data/mysql_all_db.sql
+MYSQL_TMP_DUMP_FILE=/temp/path/mysql_all_db.sql
 
 #mysqldump --all-databases --events -p$MYSQL_PASS > $MYSQL_TMP_DUMP_FILE
 mysqldump -u$MYSQL_USER --events -p$MYSQL_PASS $MYSQL_DATABASE > $MYSQL_TMP_DUMP_FILE
