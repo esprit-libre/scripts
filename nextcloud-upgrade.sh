@@ -2,34 +2,38 @@
 
 ## Upgrade Nextcloud
 #
-# version 1.0.1 - 28/02/2017
+# version 1.0.2 - 04/07/2017
 #
 # This script upgrade your Nextcloud installation following these steps:
-# - adjust permissions
 # - check presence of dependencies (needed commands)
 # - check if latest version is already installed
 # - download latest version and check integrity of the file with GPG
 # - backup current installation
 # - apply upgrade and restore configuration, data and applications
-#   |-> restore backup if failed
+#   |-> restore backup if failed [NOT TESTED...]
 # - adjust permissions
 #
 # Important:
 # - It's to run under root or user that can modify files rights and use www-data
 #
-# Usage: `./nextcloud-upgrade.sh [-up|--upgrade owncloud|nextcloud] [-d|--dir {INSTALL_PATH}] \
-#                                [-s|--save {SAVE_PATH}] [-v|--version {VERSION}] [-l]`
+# Usage: `./nextcloud-upgrade.sh [-up|--upgrade owncloud|nextcloud] \
+#                                [-d|--dir {INSTALL_PATH}] \
+#                                [-s|--save {SAVE_PATH}] \
+#                                [-v|--version {VERSION}] \
+#                                [-l]`
 #
 # Examples:
 # `./nextcloud-upgrade.sh -d INST_PATH` will get latest version number from GitHub repo and ask if keeping save
-# `./nextcloud-upgrade.sh -up owncloud -d INST_PATH -s SAVE_PATH -v 9.0.52 -l`
-# `./nextcloud-upgrade.sh -up owncloud -d /var/www/owncloud -s /home/www -l -v 9.0.8 >upgrade.log 2>&1`
+# `./nextcloud-upgrade.sh -up nextcloud -d INST_PATH -s SAVE_PATH -v 11.0.3 -l`
+# `./nextcloud-upgrade.sh -up owncloud -d /var/www/owncloud -s /home/www -l -v 9.1.5 >> /var/log/nextcloud-upgrade.log 2>&1`
 ##
 
 function main() {
     echo -e '\033[1m#Starting owncloud/nextcloud upgrade\033[0m'
     echo "-- "$(date +%F-%H-%M-%S)" --"
     echo "-----------------------------------"
+
+    # Reading vars
     readvars "$@"
 
     # Moving to working directory (SAVE)
@@ -308,9 +312,8 @@ function upgrade() {
 
     # launch nextcloud upgrade process
     test ${LOG} = 'true' && echo "[LOG] Start occ upgrade..."
-    if [ ${LATEST_VERSION%.*} = '11.0' ]; then
-        # patch https://github.com/nextcloud/server/issues/3616
-        # option --skip-migration-test does not work for all 11.0.x versions
+    if [ ${LATEST_VERSION%%.*} -ge 11 ] && [ ${DEST} = "nextcloud" ]; then
+        # https://github.com/nextcloud/server/issues/3616
         sudo -u www-data php $DIR/occ upgrade
     else
         sudo -u www-data php $DIR/occ upgrade --skip-migration-test
