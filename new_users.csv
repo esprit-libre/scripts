@@ -1,0 +1,15 @@
+#
+# Syntax info :
+#   ; is not allowed
+#   : is not allowed in mail password
+#
+# mail-password : if not set, unix-password is used
+# mail-protocol = imap|pop3
+# user-mail+mail-protocol+remote-mail-server : if one is missing, no mail config
+#
+#unix-user;unix-group;unix-password;user-path;user-mail;mail-protocol;remote-mail-server;mail-password;mail-path
+#
+test01;bureau;test01;/data/users;test01@host.net;pop3;mail.host.net;test01;/data/mails
+test02;bureau;test02;/data/users;test02@host.net;imap;mail.host.net;test02;/data/mails
+test03;bureau;test03;/data/users;test03@host.net;pop3;mail.host.net;test03;/data/mails
+test04;bureau;test04;/data/users;test04@host.net;blop;mail.host.net;test04;/data/mails
