@@ -2,11 +2,10 @@
 
 set -e
 
-readonly VERSION='1.2'
+readonly VERSION='1.3'
 readonly DATE='20 jul. 2017'
 
 shopt -s expand_aliases
-alias echo='echo -e'
 
 usage() {
 	echo ''
@@ -27,7 +26,7 @@ version() {
 
 log() {
 	if [ -n ${DEBUG} ]; then
-		echo ${@}
+		echo -e ${@}
 	fi
 }
 
@@ -174,7 +173,6 @@ mail_user() {
 	# Log files
 	if [ ! -d "/var/log/mails/" ]; then
 		mkdir -p /var/log/mails/
-		chgrp -R ${GROUP} /var/log/mails
 		log "${INFO}Log path created (/var/log/mails)"
 	fi
 	touch /var/log/mails/${USERNAME}-fetchmail.log
@@ -183,10 +181,13 @@ mail_user() {
 	chmod 600 /var/log/mails/${USERNAME}*
 
 	# Crontab
+	log "${INFO}Setting up cron job"
+	sed -i '/${USERNAME}/d' /etc/crontab
 	echo "# Fetchmail de l'utilisateur ${USERNAME}" >> /etc/crontab
 	echo "*/15 0-7 * * * ${USERNAME} fetchmail --keep >/dev/null 2>&1" >> /etc/crontab
 	echo "*/2 8-18 * * * ${USERNAME} fetchmail --keep >/dev/null 2>&1" >> /etc/crontab
 	echo "*/15 19-23 * * * ${USERNAME} fetchmail --keep >/dev/null 2>&1" >> /etc/crontab
+	echo "" >> /etc/crontab
 }
 
 #~ nextcloud_user() {
