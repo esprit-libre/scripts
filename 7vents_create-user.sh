@@ -2,7 +2,7 @@
 
 set -e
 
-readonly VERSION='1.1'
+readonly VERSION='1.2'
 readonly DATE='20 jul. 2017'
 
 shopt -s expand_aliases
@@ -106,7 +106,7 @@ linux_user() {
 		log "${ERR}User '${USERNAME}' not created with error ${?}."
 		return 2
 	fi
-	echo -e "${UNIXPASS}\n${UNIXPASS}" | (passwd ${USERNAME})
+	echo -e "${UNIXPASS}\n${UNIXPASS}" | (passwd ${USERNAME}) > /dev/null 2>&1
 	for status in "${PIPESTATUS[@]}"; do
 		if [ ${status} -ne 0 ] ; then
 			log "${ERR}'${USERNAME}' password change finished with error ${?}."
@@ -148,30 +148,39 @@ mail_user() {
 		log "${WARN}Path '${MAILPATH}' does not exist or is not dir. No user path created."
 		return 5
 	fi
-	
+
 	# Fetchmail
 	echo "set postmaster '${USERNAME}'" > /home/${USERNAME}/.fetchmailrc
-	echo "set logfile '/var/log/mails/.fetchmail-${USERNAME}.log'" >> /home/${USERNAME}/.fetchmailrc
+	echo "set logfile '/var/log/mails/${USERNAME}-fetchmail.log'" >> /home/${USERNAME}/.fetchmailrc
 	echo "set bouncemail" >> /home/${USERNAME}/.fetchmailrc
 	echo "set no spambounce" >> /home/${USERNAME}/.fetchmailrc
 	echo "poll ${MAILSERV} proto ${MAILPROTO}" >> /home/${USERNAME}/.fetchmailrc
 	echo "user '${USERMAIL}' there has password '${MAILPASS}'" >> /home/${USERNAME}/.fetchmailrc
 	echo "mda '/usr/bin/procmail -f %F'" >> /home/${USERNAME}/.fetchmailrc
-	
-	touch /home/${USERNAME}/.fetchmail-${USERNAME}.log
-	chmod 600 /home/${USERNAME}/.fetchmail*
-	chown ${USERNAME}:${GROUP} /home/${USERNAME}/.fetchmail*
+
+	chown ${USERNAME}:${GROUP} /home/${USERNAME}/.fetchmailrc
+	chmod 600 /home/${USERNAME}/.fetchmailrc
 
 	# Procmail
 	echo "# Use maildir-style mailbox in user's home directory" > /home/${USERNAME}/.procmailrc
 	echo "DEFAULT=/data/mails/${USERNAME}/Mail/" >> /home/${USERNAME}/.procmailrc
 	echo "MAILDIR=/data/mails/${USERNAME}/Mail/" >> /home/${USERNAME}/.procmailrc
-	echo "LOGFILE=/var/log/mails/.procmail-${USERNAME}.log" >> /home/${USERNAME}/.procmailrc
+	echo "LOGFILE=/var/log/mails/${USERNAME}-procmail.log" >> /home/${USERNAME}/.procmailrc
 	echo "VERBOSE=off" >> /home/${USERNAME}/.procmailrc
-	
-	touch /home/${USERNAME}/.procmail-${USERNAME}.log
-	chown ${USERNAME}:${GROUP} /home/${USERNAME}/.procmail*
-	chmod 710 /home/${USERNAME}/.procmail*
+
+	chown ${USERNAME}:${GROUP} /home/${USERNAME}/.procmailrc
+	chmod 710 /home/${USERNAME}/.procmailrc
+
+	# Log files
+	if [ ! -d "/var/log/mails/" ]; then
+		mkdir -p /var/log/mails/
+		chgrp -R ${GROUP} /var/log/mails
+		log "${INFO}Log path created (/var/log/mails)"
+	fi
+	touch /var/log/mails/${USERNAME}-fetchmail.log
+	touch /var/log/mails/${USERNAME}-procmail.log
+	chown ${USERNAME}:${GROUP} /var/log/mails/${USERNAME}*
+	chmod 600 /var/log/mails/${USERNAME}*
 
 	# Crontab
 	echo "# Fetchmail de l'utilisateur ${USERNAME}" >> /etc/crontab
