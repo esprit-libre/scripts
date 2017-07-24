@@ -2,8 +2,8 @@
 
 set -e
 
-readonly VERSION='1.3'
-readonly DATE='20 jul. 2017'
+readonly VERSION='1.4'
+readonly DATE='24 jul. 2017'
 
 shopt -s expand_aliases
 
@@ -182,12 +182,11 @@ mail_user() {
 
 	# Crontab
 	log "${INFO}Setting up cron job"
-	sed -i '/${USERNAME}/d' /etc/crontab
+	sed -i "/${USERNAME}/d" /etc/crontab
 	echo "# Fetchmail de l'utilisateur ${USERNAME}" >> /etc/crontab
 	echo "*/15 0-7 * * * ${USERNAME} fetchmail --keep >/dev/null 2>&1" >> /etc/crontab
 	echo "*/2 8-18 * * * ${USERNAME} fetchmail --keep >/dev/null 2>&1" >> /etc/crontab
 	echo "*/15 19-23 * * * ${USERNAME} fetchmail --keep >/dev/null 2>&1" >> /etc/crontab
-	echo "" >> /etc/crontab
 }
 
 #~ nextcloud_user() {
