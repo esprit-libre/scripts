@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-readonly VERSION='1.0'
+readonly VERSION='1.1'
 readonly DATE='24 jul. 2017'
 
 CURRENT_DATE=$(date +%Y-%m-%d_%Hh%M)
@@ -89,7 +89,7 @@ parameters() {
 
 processing() {
 	log "${INFO}Database extraction..."
-	sudo -u postgres -c "psql davical -c 'select dav_name from collection ;'" > ${DIR_BACKUP}/davical-list-tmp.txt
+	su - postgres -c "psql davical -c 'select dav_name from collection ;'" > ${DIR_BACKUP}/davical-list-tmp.txt
 	cat ${DIR_BACKUP}/davical-list-tmp.txt | grep / | sort -u | sed 's/^\s*//' | sed 'sZ/*$ZZ' | sed 'sZ/ZZ' > ${DIR_BACKUP}/davical-list-propre.txt
 	sed -i '/addresses/d' ${DIR_BACKUP}/davical-list-propre.txt
 
