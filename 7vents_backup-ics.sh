@@ -89,7 +89,7 @@ parameters() {
 
 processing() {
 	log "${INFO}Database extraction..."
-	pg_dump -U davical_dba davical > ${DIR_BACKUP}/davical_${CURRENT_DATE}.pgsql"
+	pg_dump -U davical_dba davical > ${DIR_BACKUP}/davical_${CURRENT_DATE}.pgsql
 
 	su - postgres -c "psql davical -c 'select dav_name from collection ;'" > ${DIR_BACKUP}/davical-list-tmp.txt
 	cat ${DIR_BACKUP}/davical-list-tmp.txt | grep / | sort -u | sed 's/^\s*//' | sed 'sZ/*$ZZ' | sed 'sZ/ZZ' > ${DIR_BACKUP}/davical-list-propre.txt
