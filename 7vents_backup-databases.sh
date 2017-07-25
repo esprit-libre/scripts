@@ -1,11 +1,10 @@
 #!/bin/bash
 set -e
 
-readonly VERSION='1.3'
-readonly DATE='24 jul. 2017'
+readonly VERSION='1.4'
+readonly DATE='25 jul. 2017'
 
 CURRENT_DATE=$(date +%Y-%m-%d_%Hh%M)
-URL_DATA=/backup/davical-ics
 
 shopt -s expand_aliases
 
@@ -19,7 +18,8 @@ usage() {
 	echo ''
 	echo 'OPTIONS = { -v[ersion] | -h[elp] | -d[ebug] }'
 	echo ''
-	echo 'This script intends to backup ics calendars from davical base.'
+	echo 'This script intends to backup ics calendars from davical base,'
+	echo 'and databases themselves: PostgreSQL and MariaDB.'
 	echo ''
 }
 
@@ -88,20 +88,41 @@ parameters() {
 }
 
 processing() {
-	log "${INFO}Database extraction..."
+	log "${INFO}PostgreSQL 'davical' database extraction..."
 	pg_dump -U davical_dba davical > ${DIR_BACKUP}/davical_${CURRENT_DATE}.pgsql
+	if [ ${?} -eq 0 ]; then
+		log "${OK}PostgreSQL extraction succeed."
+	else
+		log "${ERR}PostgreSQL extraction failed with error ${?}."
+		return 3
+	fi
 
 	su - postgres -c "psql davical -c 'select dav_name from collection ;'" > ${DIR_BACKUP}/davical-list-tmp.txt
 	cat ${DIR_BACKUP}/davical-list-tmp.txt | grep / | sort -u | sed 's/^\s*//' | sed 'sZ/*$ZZ' | sed 'sZ/ZZ' > ${DIR_BACKUP}/davical-list-propre.txt
 	sed -i '/addresses/d' ${DIR_BACKUP}/davical-list-propre.txt
-
 	{ while IFS='/' read usr cal; do
 		log "${INFO}Fetching http://${URL_DAVICAL}/caldav.php/${usr}/${cal}/ ..."
 		wget -q --http-user=${USER} --http-passwd="${PASS}" -O ${DIR_BACKUP}/"${usr}"-"${cal}"-"${CURRENT_DATE}".ics http://${URL_DAVICAL}/caldav.php/"${usr}"/"${cal}"/
 	done ; } < ${DIR_BACKUP}/davical-list-propre.txt
 
+	log "${INFO}MariaDB database extraction..."
+	mysqldump --ignore-table=mysql.event -A > ${DIR_BACKUP}/mysql_all_${CURRENT_DATE}.sql
+	if [ ${?} -eq 0 ]; then
+		log "${OK}MariaDB extraction succeed."
+	else
+		log "${ERR}MariaDB extraction failed with error ${?}."
+		return 4
+	fi
+
+	mysql -e 'SHOW DATABASES;' > ${DIR_BACKUP}/liste_database_tmp.txt
+	cat ${DIR_BACKUP}/liste_database_tmp.txt | grep -v Database | grep -v performance_schema | grep -v information_schema > ${DIR_BACKUP}/liste_database.txt
+	{ while read u1; do
+		log "${INFO}MariaDB ${u1} database extraction..."
+		mysqldump --skip-lock-tables --ignore-table=mysql.event "${u1}" > ${DIR_BACKUP}/"${u1}"_${CURRENT_DATE}.sql
+	done ; } < ${DIR_BACKUP}/liste_database.txt
+
 	log "${INFO}Cleaning backup dir."
-	find ${DIR_BACKUP} -type f -a -ctime +7 -exec rm '{}' \;
+	find ${DIR_BACKUP} -type f -a -ctime +15 -exec rm '{}' \;
 }
 
 main "$@"
