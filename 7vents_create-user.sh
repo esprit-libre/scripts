@@ -2,8 +2,8 @@
 
 set -e
 
-readonly VERSION='1.4'
-readonly DATE='24 jul. 2017'
+readonly VERSION='1.5'
+readonly DATE='25 jul. 2017'
 
 shopt -s expand_aliases
 
@@ -73,7 +73,7 @@ parameters() {
 		esac
 		shift
 	done
-	
+
 	if [ -z "${CONFIG}" ]; then
 		log "${ERR}Missing config file"
 		usage
@@ -91,7 +91,7 @@ linux_user() {
 		echo "Please enter user password:"
 		read UNIXPASS
 	fi
-	
+
 	local COMMAND="${GROUP} ${USERNAME}"
 	if [ $(grep -c -e ${USERNAME}: /etc/passwd) -ne 0 ]; then
 		log "${WARN}User already exists. Updating information."
@@ -113,7 +113,7 @@ linux_user() {
 		fi
 	done
 	log "${OK}Samba access created for user '${USERNAME}'."
-	
+
 	if [ -d "${USERPATH}" ]; then
 		log "${INFO}Creating user space in ${USERPATH}"
 		mkdir -p ${USERPATH}/${USERNAME}
@@ -189,16 +189,26 @@ mail_user() {
 	echo "*/15 19-23 * * * ${USERNAME} fetchmail --keep >/dev/null 2>&1" >> /etc/crontab
 }
 
-#~ nextcloud_user() {
-#~ }
+nextcloud_user() {
+	log "${INFO}Creating user in nextcloud env..."
+	local LAST_SEEN=$(su -s /bin/bash www-data -c 'php /var/www/cloud/occ user:lastseen '"${USERNAME}")
+	export OC_PASS="${UNIXPASS}"
+	if [ "${LAST_SEEN}" = "User does not exist" ]; then
+		su -s /bin/bash www-data -c 'php /var/www/cloud/occ user:add --group='"${GROUP}"' --password-from-env '"${USERNAME}"
+	else
+		su -s /bin/bash www-data -c 'php /var/www/cloud/occ user:resetpassword --password-from-env '"${USERNAME}"
+	fi
+	[ ${?} -ne 0 ] && return 6
+	su -s /bin/bash www-data -c 'php /var/www/cloud/occ user:setting '"${USERNAME}"' settings email '"${USERMAIL}"
+}
 
 processing() {
 	while read line; do
 		local extract=${line%%#*} # purge comments
-		
+
 		if [ ${#extract} -gt 0 ]; then
 			log "${INFO}Ligne: ${extract}"
-			
+
 			# variables
 			local USERNAME=$(echo ${extract} | cut -f1 -d\;)
 			local GROUP=$(echo ${extract} | cut -f2 -d\;)
@@ -209,18 +219,18 @@ processing() {
 			local MAILSERV=$(echo ${extract} | cut -f7 -d\;)
 			local MAILPASS=$(echo ${extract} | cut -f8 -d\;)
 			local MAILPATH=$(echo ${extract} | cut -f9 -d\;)
-			
+
 			if [ -z "${USERNAME}" ]; then
 				log "${ERR}Missing user login."
 				continue
 			fi
-			
+
 			linux_user
 			[ ${?} -ne 0 ] && continue
-			
+
 			samba_user
 			[ ${?} -ne 0 ] && continue
-			
+
 			if [ -z "${USERMAIL}" ] || [[ ! "${USERMAIL}" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$ ]]; then
 				log "${ERR}Invalid mail: ${USERMAIL}. Nothing done."
 				continue
@@ -234,12 +244,14 @@ processing() {
 				log "${ERR}No mail server defined: ${USERMAIL}. Nothing done."
 				continue
 			fi
-			
+
 			mail_user
 			[ ${?} -ne 0 ] && continue
-			
-			#~ nextcloud_user
-			#~ [ ${?} -ne 0 ] && continue
+
+			if [ -d ${NC_WWW_PATH} ]; then
+				nextcloud_user
+				[ ${?} -ne 0 ] && continue
+			fi
 		fi
 	done < ${CONFIG}
 }
