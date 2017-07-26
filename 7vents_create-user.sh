@@ -2,8 +2,8 @@
 
 set -e
 
-readonly VERSION='1.5'
-readonly DATE='25 jul. 2017'
+readonly VERSION='1.6'
+readonly DATE='26 jul. 2017'
 
 shopt -s expand_aliases
 
@@ -58,6 +58,7 @@ parameters() {
 			-n|-nextcloud)
 				NC_WWW_PATH="${2}"
 				log "${INFO}nextcloud path is '${NC_WWW_PATH}'"
+				shift
 				;;
 			-h|--help)
 				usage
@@ -182,7 +183,8 @@ mail_user() {
 
 	# Crontab
 	log "${INFO}Setting up cron job"
-	sed -i "/${USERNAME}/d" /etc/crontab
+	sed -i "/ ${USERNAME} /d" /etc/crontab #to avoid removal of similar names like
+	sed -i "/ ${USERNAME}$/d" /etc/crontab # 'pierrel' removed with 'pierre' case
 	echo "# Fetchmail de l'utilisateur ${USERNAME}" >> /etc/crontab
 	echo "*/15 0-7 * * * ${USERNAME} fetchmail --keep >/dev/null 2>&1" >> /etc/crontab
 	echo "*/2 8-18 * * * ${USERNAME} fetchmail --keep >/dev/null 2>&1" >> /etc/crontab
@@ -210,15 +212,15 @@ processing() {
 			log "${INFO}Ligne: ${extract}"
 
 			# variables
-			local USERNAME=$(echo ${extract} | cut -f1 -d\;)
-			local GROUP=$(echo ${extract} | cut -f2 -d\;)
-			local UNIXPASS=$(echo ${extract} | cut -f3 -d\;)
-			local USERPATH=$(echo ${extract} | cut -f4 -d\;)
-			local USERMAIL=$(echo ${extract} | cut -f5 -d\;)
-			local MAILPROTO=$(echo ${extract} | cut -f6 -d\;)
-			local MAILSERV=$(echo ${extract} | cut -f7 -d\;)
-			local MAILPASS=$(echo ${extract} | cut -f8 -d\;)
-			local MAILPATH=$(echo ${extract} | cut -f9 -d\;)
+			local USERNAME=$(echo ${extract} | cut -f1 -d\,)
+			local GROUP=$(echo ${extract} | cut -f2 -d\,)
+			local UNIXPASS=$(echo ${extract} | cut -f3 -d\,)
+			local USERPATH=$(echo ${extract} | cut -f4 -d\,)
+			local USERMAIL=$(echo ${extract} | cut -f5 -d\,)
+			local MAILPROTO=$(echo ${extract} | cut -f6 -d\,)
+			local MAILSERV=$(echo ${extract} | cut -f7 -d\,)
+			local MAILPASS=$(echo ${extract} | cut -f8 -d\,)
+			local MAILPATH=$(echo ${extract} | cut -f9 -d\,)
 
 			if [ -z "${USERNAME}" ]; then
 				log "${ERR}Missing user login."
