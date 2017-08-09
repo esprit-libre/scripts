@@ -155,7 +155,7 @@ $BORG create \
      --exclude '/root/.ssh' \
      >> ${LOG_PATH} 2>&1
 
-ts_log "Rotating old backups."
+log "${INFO}Rotating old backups."
 $BORG prune -v $BORG_REPOSITORY \
       --keep-daily=7 \
       --keep-weekly=4 \
