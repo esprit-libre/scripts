@@ -148,7 +148,7 @@ log "${INFO}Pushing archive ${BORG_ARCHIVE}"
 $BORG create \
      -v --stats --compression lzma,9 \
      $BORG_ARCHIVE \
-     "${FOLDERS}" /tmp/"${REMOTESERVER}"_"${REMOTEUSER}" \
+     ${FOLDERS} /tmp/"${REMOTESERVER}"_"${REMOTEUSER}" \
      --exclude '/home/*/.ssh' \
      --exclude '/home/*/cache' \
      --exclude '/root/.borg' \
