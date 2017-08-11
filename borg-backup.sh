@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-readonly VERSION='1.0'
-readonly DATE='9 aug. 2017'
+readonly VERSION='1.1'
+readonly DATE='11 aug. 2017'
 readonly LOG_PATH=/var/log/borg-user.log
 readonly BORG=/usr/bin/borg
 
@@ -24,6 +24,15 @@ usage() {
 	echo 'This script intends to backup folders and MariaDB databases to a remote server'
 	echo 'using BorgBackup software.'
 	echo ''
+	echo 'Prerequisites are:'
+	echo '- authentication to remote server is based on RSA key authentication (~/.ssh/<rsa_key_file>)'
+	echo '~/.borg/<remote_server_name> : Mandatory. This file contains Borg passphrase (chmod 600)'
+	echo "~/.borg/mysql_<mysql_user> : Optionnal. This file contains MySQL user's password"
+	echo 'If used without MySQL login, ~/.my.cnf should be set for MySQL requests to be served'
+	echo ''
+	echo 'TODO LIST'
+	echo '- move logs to personnalized file from parameters or composed (/var/log/bog_<server>_<user>.log)'
+	echo '- add Borg directory exclusions in parameters'
 }
 
 log() {
@@ -120,6 +129,8 @@ parameters() {
 }
 
 init
+log "\n---------------------"
+log "${INFO}Starting Borg Backup - ${CURRENT_DATE}"
 parameters "$@"
 
 export BORG_RSH="ssh -i /root/.ssh/${REMOTESERVER}"
@@ -135,7 +146,7 @@ elif [ $( ls -1 /tmp/"${REMOTESERVER}"_"${REMOTEUSER}" | wc -l ) -gt 0 ]; then
 fi
 
 if [ -z "${NOBASE}" -a -n "${MYSQLBASE}" ]; then
-	mysqldump -u"${MYSQLUSER}" -p"${MYSQLPASS}" "${MYSQLBASE}" > /tmp/"${REMOTESERVER}"_"${REMOTEUSER}"/"${MYSQLBASE}"_${CURRENT_DATE}.sql
+	mysqldump -u"${MYSQLUSER}" -p"${MYSQLPASS}" -B "${MYSQLBASE}" > /tmp/"${REMOTESERVER}"_"${REMOTEUSER}"/"${MYSQLBASE}"_${CURRENT_DATE}.sql
 elif [ -z "${NOBASE}" ]; then
 	mysql -e 'SHOW DATABASES;' | grep -v Database | grep -v performance_schema | grep -v information_schema | grep -v mysql > /tmp/"${REMOTESERVER}"_"${REMOTEUSER}"/base_list
 	{ while read u1; do
