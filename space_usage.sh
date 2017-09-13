@@ -4,7 +4,7 @@ set -e
 readonly VERSION='1.1'
 readonly DATE='13 sept. 2017'
 
-CURRENT_DATE=$(date +%Y%m%d_%H%M%S)
+CURRENT_DATE=$(date +%d/%m/%Y_%Hh%M)
 
 version() {
 	echo "$(basename "${0}") - version ${VERSION} - ${DATE}."
@@ -91,8 +91,9 @@ parameters() {
 			LEVEL=1
 		fi
 	fi
-	if [ -n "${MAILS}" ]; then
-		MAILS="| mail -s \"Nextcloud usage report\" \"${MAILS}\""
+	if [ -z "${MAILS}" ] || [[ ! "${MAILS}" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$ ]]; then
+		log "${WARN}Invalid mail: ${MAILS}. No mail report."
+		unset MAILS
 	fi
 }
 
@@ -103,16 +104,28 @@ parameters "$@"
 
 if [ -n "${NEXTCLOUD}" ]; then
 	if [ -n "${SHORT}" ]; then
-		/usr/bin/du -d 1 -h --exclude="*files_trashbin*" --exclude="*cache*" --exclude="*appdata*" \
+		RESULT=$(/usr/bin/du -d 1 -h --exclude="*files_trashbin*" --exclude="*cache*" --exclude="*appdata*" \
 			--exclude="*files_external*" --exclude="*files_versions*" --exclude="*thumbnails*" \
 			--exclude="*updater_backup*" --exclude="*uploads*" "${PATH}" | \
-			/bin/sed "s/${PATH//\//\\\/}//g"
+			/bin/sed "s/${PATH//\//\\\/}//g")
+		GLOBAL=$(/usr/bin/du -sh --exclude="*files_trashbin*" --exclude="*cache*" --exclude="*appdata*" \
+			--exclude="*files_external*" --exclude="*files_versions*" --exclude="*thumbnails*" \
+			--exclude="*updater_backup*" --exclude="*uploads*" "${PATH}" | \
+			/bin/sed "s/${PATH//\//\\\/}//g")
 	else
-		/usr/bin/du -d 2 -h "${PATH}" | /bin/sed '/files_trashbin/d' | /bin/sed '/cache/d' | \
+		RESULT=$(/usr/bin/du -d 2 -h "${PATH}" | /bin/sed '/files_trashbin/d' | /bin/sed '/cache/d' | \
 			/bin/sed '/appdata_/d' | /bin/sed '/files_external/d' | /bin/sed '/files_versions/d' | \
 			/bin/sed '/thumbnails/d' | /bin/sed '/updater_backup/d' | /bin/sed '/uploads/d' | \
-			/bin/sed "s/${PATH//\//\\\/}//g"
+			/bin/sed "s/${PATH//\//\\\/}//g")
+		GLOBAL=$(/usr/bin/du -sh "${PATH}" | /bin/sed "s/${PATH//\//\\\/}//g")
 	fi
 else
-	/usr/bin/du -d "${LEVEL}" -h "${PATH}" | /bin/sed "s/${PATH//\//\\\/}//g"
+	RESULT=$(/usr/bin/du -d "${LEVEL}" -h "${PATH}" | /bin/sed "s/${PATH//\//\\\/}//g")
+	GLOBAL=$(/usr/bin/du -sh "${PATH}" | /bin/sed "s/${PATH//\//\\\/}//g")
+fi
+
+echo -e "${RESULT}\n------\n"
+if [ -n "${MAILS}" ]; then
+	echo -e "Espace occupé pour ${PATH} - ${CURRENT_DATE}\n\nTotal = ${GLOBAL}\n\n${RESULT}" | \
+		/usr/bin/mail -a "Content-Type: text/plain; charset=UTF-8" -s "[Cloud] Info quota pour ${PATH} - ${CURRENT_DATE}" "${MAILS}"
 fi
