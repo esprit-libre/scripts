@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-readonly VERSION='1.0'
-readonly DATE='11 sept. 2017'
+readonly VERSION='1.1'
+readonly DATE='13 sept. 2017'
 
 CURRENT_DATE=$(date +%Y%m%d_%H%M%S)
 
@@ -15,9 +15,10 @@ usage() {
 	echo '$(basename "${0}") -p[ath] <PATH> [ OPTIONS ]'
 	echo ''
 	echo 'OPTIONS = { -v[ersion] | -h[elp] | -d[ebug] }'
-	echo 'OPTIONS = { -l[evel] } : depth to explore, }'
+	echo 'OPTIONS = { -l[evel] } : depth to explore, default is 1. }'
 	echo 'OPTIONS = { -m[ails] } : email list (comma separated) to send report. }'
 	echo 'OPTIONS = { -n[extcloud] } : use nextcloud file organization. }'
+	echo 'OPTIONS = { -s[hort] } : friendly print for nextcloud case. }'
 	echo ''
 	echo 'This script intends to count space used by directories or by users.'
 	echo ''
@@ -37,6 +38,7 @@ init() {
 }
 
 parameters() {
+	LEVEL=1
 	while [[ $# -gt 0 ]]; do
 		local key="$1"
 		case $key in
@@ -63,6 +65,9 @@ parameters() {
 				readonly PATH="${2}"
 				shift
 				;;
+			-s|-short)
+				readonly SHORT='true'
+				;;
 			-v|--version)
 				version
 				exit 0
@@ -82,9 +87,8 @@ parameters() {
 	if [ -n "${LEVEL}" ]; then
 		re='^[0-9]+$'
 		if ! [[ "${LEVEL}" =~ $re ]]; then
-			log "${ERR}Invalid value for level."
-			usage
-			return 2
+			log "${WARN}Invalid value for level. Using '1' (default)."
+			LEVEL=1
 		fi
 	fi
 	if [ -n "${MAILS}" ]; then
@@ -98,15 +102,17 @@ log "${INFO}Starting space usage - ${CURRENT_DATE}"
 parameters "$@"
 
 if [ -n "${NEXTCLOUD}" ]; then
-	#~ /usr/bin/du -d 2 -h --exclude="*files_trashbin*" --exclude="*cache*" --exclude="*appdata*" \
-		#~ --exclude="*files_external*" --exclude="*files_versions*" --exclude="*thumbnails*" \
-		#~ --exclude="*updater_backup*" --exclude="*uploads*" "${PATH}" | \
-		#~ /bin/sed "s/${PATH//\//\\\/}//g"
-	/usr/bin/du -d 2 -h "${PATH}" | /bin/sed '/files_trashbin/d' | /bin/sed '/cache/d' | \
-		/bin/sed '/appdata_/d' | /bin/sed '/files_external/d' | /bin/sed '/files_versions/d' | \
-		/bin/sed '/thumbnails/d' | /bin/sed '/updater_backup/d' | /bin/sed '/uploads/d' | \
-		/bin/sed "s/${PATH//\//\\\/}//g"
+	if [ -n "${SHORT}" ]; then
+		/usr/bin/du -d 1 -h --exclude="*files_trashbin*" --exclude="*cache*" --exclude="*appdata*" \
+			--exclude="*files_external*" --exclude="*files_versions*" --exclude="*thumbnails*" \
+			--exclude="*updater_backup*" --exclude="*uploads*" "${PATH}" | \
+			/bin/sed "s/${PATH//\//\\\/}//g"
+	else
+		/usr/bin/du -d 2 -h "${PATH}" | /bin/sed '/files_trashbin/d' | /bin/sed '/cache/d' | \
+			/bin/sed '/appdata_/d' | /bin/sed '/files_external/d' | /bin/sed '/files_versions/d' | \
+			/bin/sed '/thumbnails/d' | /bin/sed '/updater_backup/d' | /bin/sed '/uploads/d' | \
+			/bin/sed "s/${PATH//\//\\\/}//g"
+	fi
 else
-	#~ /usr/bin/du -d "${LEVEL}" -h "${PATH}" | /bin/sed "s/${PATH//\//\\\/}//g"
 	/usr/bin/du -d "${LEVEL}" -h "${PATH}" | /bin/sed "s/${PATH//\//\\\/}//g"
 fi
