@@ -2,7 +2,7 @@
 
 ## Upgrade Nextcloud
 #
-# version 1.0.2 - 04/07/2017
+# version 1.0.3 - 26/09/2018
 #
 # This script upgrade your Nextcloud installation following these steps:
 # - check presence of dependencies (needed commands)
@@ -74,12 +74,10 @@ function main() {
     fi
     # get product and installed version number
     test ${LOG} = 'true' && echo -n "[LOG] Getting infos on installed instance... "
-    CURRENT_VERSION=$(sudo -u www-data php $DIR/occ -V | awk '{ print $3 }')
-    PRODUCT=$(
-        sudo -u www-data php $DIR/occ -V | \
-        awk '{ print $1 }' | \
-        tr '[:upper:]' '[:lower:]'
-    )
+    CURRENT_VERSION=$(sudo -u www-data php $DIR/occ -V)
+    CURRENT_VERSION=${CURRENT_VERSION##* } #only keep last part of result: version number
+    PRODUCT=$(sudo -u www-data php $DIR/occ config:list | \
+              sed '7q;d' | sed 's/\"//g' | sed 's/\\/-/g' | sed 's/\//-/g' | sed 's/ //g')
     test ${LOG} = 'true' && echo ${PRODUCT}" "${CURRENT_VERSION}" ; upgrade to "${DEST}" "${LATEST_VERSION}
 
     echo -e '\033[1m#-- check version\033[0m'
